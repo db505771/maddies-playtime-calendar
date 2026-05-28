@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Playtime Calendar</title>
+
   <style>
     body {
       background-color: #0f1a2b;
@@ -43,7 +44,7 @@
       font-size: 1rem;
       height: 55px;
       min-width: 40px;
-      cursor: default;
+      cursor: pointer;
       transition: background-color 0.3s ease;
       box-sizing: border-box;
       padding: 4px 0;
@@ -64,7 +65,76 @@
       background-color: #2a3b5d;
     }
 
-    /* Make calendar horizontally scrollable on very small screens */
+    /* POPUP */
+
+    .popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .popupBox {
+      background: #1a2b3d;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 14px;
+      padding: 16px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    .popupTitle {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .game {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #24384f;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .game img {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: #111;
+    }
+
+    .gameInfo {
+      flex: 1;
+    }
+
+    .gameName {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .gameTime {
+      color: #ccc;
+      font-size: 0.9rem;
+    }
+
+    .noGames {
+      text-align: center;
+      color: #aaa;
+      padding: 10px 0;
+    }
+
     @media (max-width: 360px) {
       .calendar {
         overflow-x: auto;
@@ -76,12 +146,36 @@
     }
   </style>
 </head>
+
 <body>
+
   <h1 id="calendar-title">Loading...</h1>
+
   <div class="calendar" id="calendar"></div>
 
+  <!-- POPUP -->
+  <div class="popup" id="popup" onclick="closePopup()">
+    <div class="popupBox" onclick="event.stopPropagation()">
+
+      <div class="popupTitle" id="popupTitle">
+        Games
+      </div>
+
+      <div id="popupGames"></div>
+
+    </div>
+  </div>
+
   <script>
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRo-SarpignS39lDSaIGsV13WyUJOURcyVaRP_mEqY6XfBxby9WA_XCf5AhXi8OcwHDiP4FLqBwMGKw/pub?output=csv";
+
+    const csvUrl =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRo-SarpignS39lDSaIGsV13WyUJOURcyVaRP_mEqY6XfBxby9WA_XCf5AhXi8OcwHDiP4FLqBwMGKw/pub?output=csv";
+
+    // YOUR APPS SCRIPT LINK
+    const API =
+      "https://script.google.com/macros/s/AKfycby5tKKny4hqGyG--JQxP4IVe2C8WWGO6sMij6p66MdSmLFVDUn6TbeBbM2L51TdWia_/exec";
+
+    let gamesData = [];
 
     async function fetchData() {
       const res = await fetch(csvUrl);
@@ -90,34 +184,69 @@
       return rows;
     }
 
+    async function fetchGames() {
+
+      const res = await fetch(API);
+
+      gamesData = await res.json();
+    }
+
     function getMonthDays(year, month) {
+
       const date = new Date(year, month, 1);
+
       const days = [];
+
       while (date.getMonth() === month) {
+
         days.push(new Date(date));
+
         date.setDate(date.getDate() + 1);
       }
+
       return days;
     }
 
     async function buildCalendar(year, month) {
-      const calendar = document.getElementById("calendar");
-      const title = document.getElementById("calendar-title");
+
+      const calendar =
+        document.getElementById("calendar");
+
+      const title =
+        document.getElementById("calendar-title");
 
       calendar.innerHTML = "";
 
       const dateObj = new Date(year, month);
-      const monthName = dateObj.toLocaleString("default", { month: "long" });
-      title.textContent = `${monthName} ${year} Play Calendar`;
+
+      const monthName =
+        dateObj.toLocaleString("default", {
+          month: "long"
+        });
+
+      title.textContent =
+        `${monthName} ${year} Play Calendar`;
 
       const allRows = await fetchData();
+
+      await fetchGames();
+
       const playedDates = new Set();
 
       for (const row of allRows) {
+
         const rawDate = row[0];
-        const minutesPlayed = parseInt(row[4]) || 0;
+
+        const minutesPlayed =
+          parseInt(row[4]) || 0;
+
         const date = new Date(rawDate);
-        if (date.getFullYear() === year && date.getMonth() === month && minutesPlayed > 0) {
+
+        if (
+          date.getFullYear() === year &&
+          date.getMonth() === month &&
+          minutesPlayed > 0
+        ) {
           playedDates.add(date.getDate());
         }
       }
@@ -127,14 +256,18 @@
       const today = new Date();
 
       for (const day of days) {
-        const div = document.createElement("div");
+
+        const div =
+          document.createElement("div");
+
         div.classList.add("day");
+
         if (playedDates.has(day.getDate())) {
           div.classList.add("played");
-          div.innerHTML = `${day.getDate()}<span></span>`;
-        } else {
-          div.innerHTML = `${day.getDate()}<span></span>`;
         }
+
+        div.innerHTML =
+          `${day.getDate()}<span></span>`;
 
         if (
           day.getDate() === today.getDate() &&
@@ -144,13 +277,121 @@
           div.classList.add("today");
         }
 
+        // CLICK DAY
+        div.onclick = () => openDay(day);
+
         calendar.appendChild(div);
       }
     }
 
-    // For now, just show current month (swipe to come later)
+    function openDay(day){
+
+      const popup =
+        document.getElementById("popup");
+
+      const popupGames =
+        document.getElementById("popupGames");
+
+      const popupTitle =
+        document.getElementById("popupTitle");
+
+      popup.style.display = "flex";
+
+      popupTitle.textContent =
+        day.toLocaleDateString();
+
+      popupGames.innerHTML = "";
+
+      // FILTER GAMES FOR THIS DAY
+      const filtered = gamesData.filter(g => {
+
+        const d = new Date(g.date);
+
+        return (
+          d.getDate() === day.getDate() &&
+          d.getMonth() === day.getMonth() &&
+          d.getFullYear() === day.getFullYear()
+        );
+      });
+
+      // MERGE SAME GAMES
+      const merged = {};
+
+      filtered.forEach(g => {
+
+        if(!merged[g.id]){
+
+          merged[g.id] = {
+            ...g,
+            minutes: 0
+          };
+        }
+
+        merged[g.id].minutes += g.minutes;
+      });
+
+      const finalGames =
+        Object.values(merged);
+
+      if(finalGames.length === 0){
+
+        popupGames.innerHTML =
+          `<div class="noGames">
+            No games found
+          </div>`;
+
+        return;
+      }
+
+      finalGames.sort((a,b)=>
+        b.minutes-a.minutes
+      );
+
+      finalGames.forEach(g => {
+
+        const hours =
+          Math.floor(g.minutes / 60);
+
+        const mins =
+          g.minutes % 60;
+
+        popupGames.innerHTML += `
+          <div class="game">
+
+            <img src="${g.image}">
+
+            <div class="gameInfo">
+
+              <div class="gameName">
+                ${g.name}
+              </div>
+
+              <div class="gameTime">
+                ${hours}h ${mins}m played
+              </div>
+
+            </div>
+
+          </div>
+        `;
+      });
+    }
+
+    function closePopup(){
+
+      document.getElementById("popup")
+        .style.display = "none";
+    }
+
+    // CURRENT MONTH
     const today = new Date();
-    buildCalendar(today.getFullYear(), today.getMonth());
+
+    buildCalendar(
+      today.getFullYear(),
+      today.getMonth()
+    );
+
   </script>
+
 </body>
 </html>
